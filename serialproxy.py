@@ -2,35 +2,52 @@ import argparse
 import time
 from threading import Thread
 
-from serial import Serial
+from serial import Serial  # type: ignore
+
+
+class Transfer:
+
+    def __init__(self, src: Serial, dest: Serial):
+        self._src = src
+        self._dest = dest
+        self._alive = False
+        self._th = Thread(target=self.process, daemon=True)
+
+    def start(self):
+        self._alive = True
+        self._th.start()
+
+    def stop(self):
+        self._alive = False
+        self._th.join()
+
+    def process(self):
+        while self._alive:
+            b = self._src.read(self._src.in_waiting or 1)
+            if b:
+                self._dest.write(b)
 
 
 def main(port1: str, port2: str, port1_baudrate: int, port2_baudrate: int):
-    com1 = Serial(port1, port1_baudrate, timeout=1)
-    com2 = Serial(port2, port2_baudrate, timeout=1)
+    com1 = Serial(port1, port1_baudrate, timeout=.5)
+    com2 = Serial(port2, port2_baudrate, timeout=.5)
 
-    def pipe1():
-        while True:
-            b = com1.read(com1.in_waiting or 1)
-            if b:
-                com2.write(b)
+    t1 = Transfer(com1, com2)
+    t2 = Transfer(com2, com1)
 
-    def pipe2():
-        while True:
-            b = com2.read(com2.in_waiting or 1)
-            if b:
-                com1.write(b)
-
-    th1 = Thread(target=pipe1, daemon=True)
-    th2 = Thread(target=pipe2, daemon=True)
-    th1.start()
-    th2.start()
+    t1.start()
+    t2.start()
 
     try:
         while True:
             time.sleep(1)
     except KeyboardInterrupt:
         pass
+    finally:
+        t1.stop()
+        t2.stop()
+        com1.close()
+        com2.close()
 
 
 if __name__ == '__main__':
