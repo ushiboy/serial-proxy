@@ -28,7 +28,7 @@ class Transfer:
                 self._dest.write(b)
 
 
-def main(port1: str, port2: str, port1_baudrate: int, port2_baudrate: int):
+def run(port1: str, port2: str, port1_baudrate: int, port2_baudrate: int):
     com1 = Serial(port1, port1_baudrate, timeout=.5)
     com2 = Serial(port2, port2_baudrate, timeout=.5)
 
@@ -50,7 +50,7 @@ def main(port1: str, port2: str, port1_baudrate: int, port2_baudrate: int):
         com2.close()
 
 
-if __name__ == '__main__':
+def main():
     parser = argparse.ArgumentParser(prog='serialproxy')
     parser.add_argument('port1', help='Serial port 1')
     parser.add_argument('port2', help='Serial port 1')
@@ -61,4 +61,8 @@ if __name__ == '__main__':
                         default=115200,
                         help='baudrate port2')
     args = parser.parse_args()
-    main(args.port1, args.port2, args.port1_baudrate, args.port2_baudrate)
+    run(args.port1, args.port2, args.port1_baudrate, args.port2_baudrate)
+
+
+if __name__ == '__main__':
+    main()
