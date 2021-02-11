@@ -52,8 +52,8 @@ def run(port1: str, port2: str, port1_baudrate: int, port2_baudrate: int):
 
 def main():
     parser = argparse.ArgumentParser(prog='serialproxy')
-    parser.add_argument('port1', help='Serial port 1')
-    parser.add_argument('port2', help='Serial port 2')
+    parser.add_argument('port1', help='Path of serial port 1')
+    parser.add_argument('port2', help='Path of serial port 2')
     parser.add_argument('--port1-baudrate', type=int,
                         default=115200,
                         help='Baudrate of serial port 1')
