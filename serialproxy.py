@@ -17,6 +17,12 @@ class NoneDump(DumpInterface):
         pass
 
 
+class ConsoleDump(DumpInterface):
+
+    def output(self, data: bytes):
+        print(data)
+
+
 class Transfer:
 
     def __init__(self, src: Serial, dest: Serial, dump: DumpInterface):
@@ -50,12 +56,13 @@ class Transfer:
                 continuity = False
 
 
-def run(port1: str, port2: str, port1_baudrate: int, port2_baudrate: int):
+def run(port1: str, port2: str, port1_baudrate: int, port2_baudrate: int, dump: bool):
     com1 = Serial(port1, port1_baudrate, timeout=.5)
     com2 = Serial(port2, port2_baudrate, timeout=.5)
 
-    t1 = Transfer(com1, com2, NoneDump())
-    t2 = Transfer(com2, com1, NoneDump())
+    dump = ConsoleDump() if dump else NoneDump()
+    t1 = Transfer(com1, com2, dump)
+    t2 = Transfer(com2, com1, dump)
 
     t1.start()
     t2.start()
@@ -82,8 +89,11 @@ def main():
     parser.add_argument('--port2-baudrate', type=int,
                         default=115200,
                         help='Baudrate of serial port 2')
+    parser.add_argument('--verbose', '-V', action='store_true',
+                        help='Enable console dump')
     args = parser.parse_args()
-    run(args.port1, args.port2, args.port1_baudrate, args.port2_baudrate)
+    run(args.port1, args.port2, args.port1_baudrate,
+        args.port2_baudrate, args.verbose)
 
 
 if __name__ == '__main__':
