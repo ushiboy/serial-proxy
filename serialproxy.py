@@ -5,13 +5,26 @@ from threading import Thread
 from serial import Serial  # type: ignore
 
 
+class DumpInterface:
+
+    def output(self, data: bytes):
+        raise NotImplementedError
+
+
+class NoneDump(DumpInterface):
+
+    def output(self, data: bytes):
+        pass
+
+
 class Transfer:
 
-    def __init__(self, src: Serial, dest: Serial):
+    def __init__(self, src: Serial, dest: Serial, dump: DumpInterface):
         self._src = src
         self._dest = dest
         self._alive = False
         self._th = Thread(target=self.process, daemon=True)
+        self._dump = dump
 
     def start(self):
         self._alive = True
@@ -22,18 +35,27 @@ class Transfer:
         self._th.join()
 
     def process(self):
+        continuity = False
+        buf = b''
         while self._alive:
             b = self._src.read(self._src.in_waiting or 1)
             if b:
+                continuity = True
+                buf += b
                 self._dest.write(b)
+            else:
+                if continuity:
+                    self._dump.output(buf)
+                    buf = b''
+                continuity = False
 
 
 def run(port1: str, port2: str, port1_baudrate: int, port2_baudrate: int):
     com1 = Serial(port1, port1_baudrate, timeout=.5)
     com2 = Serial(port2, port2_baudrate, timeout=.5)
 
-    t1 = Transfer(com1, com2)
-    t2 = Transfer(com2, com1)
+    t1 = Transfer(com1, com2, NoneDump())
+    t2 = Transfer(com2, com1, NoneDump())
 
     t1.start()
     t2.start()
