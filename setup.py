@@ -6,7 +6,7 @@ with open('README.md', 'r') as f:
 
 setup(
     name='serialproxy',
-    version='0.1.0',
+    version='0.2.0',
     author='ushiboy',
     license='MIT',
     description='A proxy that connects serial ports to each other',
