@@ -1,5 +1,7 @@
 import argparse
+import sys
 import time
+from datetime import datetime
 from threading import Thread
 
 from serial import Serial  # type: ignore
@@ -7,20 +9,22 @@ from serial import Serial  # type: ignore
 
 class DumpInterface:
 
-    def output(self, data: bytes):
+    def output(self, timestamp: datetime, src: str, dest: str, data: bytes):
         raise NotImplementedError
 
 
 class NoneDump(DumpInterface):
 
-    def output(self, data: bytes):
+    def output(self, timestamp: datetime, src: str, dest: str, data: bytes):
         pass
 
 
 class ConsoleDump(DumpInterface):
 
-    def output(self, data: bytes):
-        print(data)
+    def output(self, timestamp: datetime, src: str, dest: str, data: bytes):
+        flow = '%s -> %s' % (src, dest)
+        print(timestamp, flow, data)
+        sys.stdout.flush()
 
 
 class Transfer:
@@ -41,19 +45,19 @@ class Transfer:
         self._th.join()
 
     def process(self):
-        continuity = False
-        buf = b''
         while self._alive:
             b = self._src.read(self._src.in_waiting or 1)
-            if b:
-                continuity = True
+            if not b:
+                continue
+            buf = b
+            while True:
+                b = self._src.read(self._src.in_waiting or 1)
+                if not b:
+                    break
                 buf += b
-                self._dest.write(b)
-            else:
-                if continuity:
-                    self._dump.output(buf)
-                    buf = b''
-                continuity = False
+            self._dest.write(buf)
+            self._dump.output(datetime.now(), self._src.name,
+                              self._dest.name, buf)
 
 
 def run(port1: str, port2: str, port1_baudrate: int, port2_baudrate: int, dump: bool):
@@ -90,7 +94,7 @@ def main():
                         default=115200,
                         help='Baudrate of serial port 2')
     parser.add_argument('--verbose', '-V', action='store_true',
-                        help='Enable console dump')
+                        help='Enable dump to console')
     args = parser.parse_args()
     run(args.port1, args.port2, args.port1_baudrate,
         args.port2_baudrate, args.verbose)
